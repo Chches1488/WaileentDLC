@@ -1,0 +1,836 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waileent | Premium Client</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --dark-gray: #1a1a1a;
+            --medium-gray: #2d2d2d;
+            --light-gray: #3d3d3d;
+            --accent-blue: #3498db;
+            --text-white: #f5f5f5;
+            --text-gray: #b3b3b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-gray);
+            color: var(--text-white);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(52, 152, 219, 0.1) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(52, 152, 219, 0.1) 0%, transparent 25%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        header {
+            background-color: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-highlight {
+            color: var(--accent-blue);
+            margin-left: 0.3rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 1.5rem;
+        }
+
+        nav ul li a {
+            color: var(--text-white);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        nav ul li a:hover {
+            color: var(--accent-blue);
+        }
+
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--accent-blue);
+            bottom: 0;
+            left: 0;
+            transition: width 0.3s ease;
+        }
+
+        nav ul li a:hover::after {
+            width: 100%;
+        }
+
+        .auth-buttons {
+            display: flex;
+            align-items: center;
+        }
+
+        .auth-btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .login-btn {
+            color: var(--text-white);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .login-btn:hover {
+            background-color: rgba(52, 152, 219, 0.2);
+        }
+
+        .register-btn {
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+        }
+
+        .register-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .hero {
+            padding: 10rem 2rem 5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(52, 152, 219, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            animation: pulse 15s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2); }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, var(--text-white), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.6;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.5);
+        }
+
+        .features {
+            padding: 5rem 2rem;
+            background-color: var(--medium-gray);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2.5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--accent-blue);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-desc {
+            color: var(--text-gray);
+            line-height: 1.6;
+        }
+
+        .pricing {
+            padding: 5rem 2rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .pricing-card.popular::before {
+            content: 'Популярный';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            padding: 0.3rem 1.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transform: translateY(-50%) rotate(45deg) translateX(26%);
+            transform-origin: bottom left;
+        }
+
+        .pricing-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--accent-blue);
+        }
+
+        .pricing-button {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .services {
+            padding: 3rem 2rem;
+            background-color: var(--medium-gray);
+            text-align: center;
+        }
+
+        .service-item {
+            display: inline-block;
+            margin: 0 1rem 1.5rem;
+            padding: 1rem 2rem;
+            background-color: var(--light-gray);
+            border-radius: 5px;
+            font-weight: 500;
+        }
+
+        .service-price {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        footer {
+            background-color: var(--dark-gray);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-white);
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        .footer-logo span {
+            color: var(--accent-blue);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links li {
+            margin: 0 1rem;
+        }
+
+        .footer-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-blue);
+        }
+
+        .copyright {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-gray);
+            transition: color 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: var(--text-white);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--accent-blue);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: var(--medium-gray);
+            color: var(--text-white);
+            font-size: 1rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-gray);
+        }
+
+        .form-footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 2000;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            nav ul {
+                margin: 1rem 0;
+            }
+
+            nav ul li {
+                margin-left: 1rem;
+            }
+
+            .auth-buttons {
+                margin-top: 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Header -->
+    <header id="header">
+        <div class="header-container">
+            <a href="#" class="logo">Waileent<span class="logo-highlight">.</span></a>
+            <nav>
+                <ul>
+                    <li><a href="#features">Возможности</a></li>
+                    <li><a href="#pricing">Цены</a></li>
+                    <li><a href="#services">Дополнительно</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <a href="#login-modal" class="auth-btn login-btn" id="login-btn">Вход</a>
+                <a href="#register-modal" class="auth-btn register-btn" id="register-btn">Регистрация</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1 class="animate__animated animate__fadeInDown">Waileent Client</h1>
+        <p class="animate__animated animate__fadeIn animate__delay-1s">Премиум клиент с красивым дизайном, оптимизацией, частыми обновлениями и лучшей поддержкой.</p>
+        <a href="#pricing" class="cta-button animate__animated animate__fadeIn animate__delay-2s">Купить сейчас</a>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <h2 class="section-title animate__animated animate__fadeIn">Наши преимущества</h2>
+        <div class="features-grid">
+            <div class="feature-card animate__animated animate__fadeInUp">
+                <div class="feature-icon"><i class="fas fa-paint-brush"></i></div>
+                <h3 class="feature-title">Красивый внешний вид</h3>
+                <p class="feature-desc">Настройте оформление клиента под себя с яркими визуальными функциями.</p>
+            </div>
+            <div class="feature-card animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="feature-icon"><i class="fas fa-tachometer-alt"></i></div>
+                <h3 class="feature-title">Оптимизация</h3>
+                <p class="feature-desc">Клиент работает даже на слабых компьютерах благодаря нашей оптимизации.</p>
+            </div>
+            <div class="feature-card animate__animated animate__fadeInUp animate__delay-2s">
+                <div class="feature-icon"><i class="fas fa-sync"></i></div>
+                <h3 class="feature-title">Частые обновления</h3>
+                <p class="feature-desc">Регулярные обновления с новыми функциями и улучшениями.</p>
+            </div>
+            <div class="feature-card animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="feature-icon"><i class="fas fa-headset"></i></div>
+                <h3 class="feature-title">Поддержка</h3>
+                <p class="feature-desc">Быстрая и надежная поддержка для решения любых вопросов.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <h2 class="section-title animate__animated animate__fadeIn">Наши тарифы</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card animate__animated animate__fadeInLeft">
+                <h3 class="pricing-title">1 Месяц</h3>
+                <div class="pricing-price">100₽</div>
+                <a href="https://funpay.com/users/13118271/" target="_blank" class="pricing-button">Купить через FunPay</a>
+            </div>
+            <div class="pricing-card popular animate__animated animate__fadeInUp">
+                <h3 class="pricing-title">3 Месяца</h3>
+                <div class="pricing-price">300₽</div>
+                <a href="https://funpay.com/users/13118271/" target="_blank" class="pricing-button">Купить через FunPay</a>
+            </div>
+            <div class="pricing-card animate__animated animate__fadeInRight">
+                <h3 class="pricing-title">1 Год</h3>
+                <div class="pricing-price">450₽</div>
+                <a href="https://funpay.com/users/13118271/" target="_blank" class="pricing-button">Купить через FunPay</a>
+            </div>
+            <div class="pricing-card animate__animated animate__fadeInRight animate__delay-1s">
+                <h3 class="pricing-title">Навсегда</h3>
+                <div class="pricing-price">610₽</div>
+                <a href="https://funpay.com/users/13118271/" target="_blank" class="pricing-button">Купить через FunPay</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Additional Services -->
+    <section class="services" id="services">
+        <h2 class="section-title animate__animated animate__fadeIn">Дополнительные услуги</h2>
+        <div class="animate__animated animate__fadeInUp">
+            <div class="service-item">
+                Сброс HWID: <span class="service-price">200₽</span>
+                <a href="https://funpay.com/users/13118271/" target="_blank" class="pricing-button mt-2">Купить через FunPay</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <a href="#" class="footer-logo">Waileent<span>.</span></a>
+        <ul class="footer-links">
+            <li><a href="#features">Возможности</a></li>
+            <li><a href="#pricing">Цены</a></li>
+            <li><a href="#services">Дополнительно</a></li>
+            <li><a href="#login-modal">Вход</a></li>
+            <li><a href="#register-modal">Регистрация</a></li>
+        </ul>
+        <p class="copyright">© 2025 Waileent Client. Все права защищены.</p>
+    </footer>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 class="modal-title">Вход в аккаунт</h2>
+            <form id="login-form" action="login.php" method="post">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="submit-btn">Войти</button>
+                <div class="form-footer">
+                    Нет аккаунта? <a href="#register-modal" class="switch-to-register">Зарегистрироваться</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="register-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 class="modal-title">Регистрация</h2>
+            <form id="register-form" action="register.php" method="post">
+                <div class="form-group">
+                    <label for="reg-username">Логин</label>
+                    <input type="text" id="reg-username" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Пароль</label>
+                    <input type="password" id="reg-password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="submit-btn">Зарегистрироваться</button>
+                <div class="form-footer">
+                    Уже есть аккаунт? <a href="#login-modal" class="switch-to-login">Войти</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Modal functionality
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const loginModal = document.getElementById('login-modal');
+        const registerModal = document.getElementById('register-modal');
+        const closeButtons = document.querySelectorAll('.close-modal');
+        const switchToRegister = document.querySelector('.switch-to-register');
+        const switchToLogin = document.querySelector('.switch-to-login');
+
+        function showModal(modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideModal(modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal(loginModal);
+        });
+
+        registerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal(registerModal);
+        });
+
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                hideModal(loginModal);
+                hideModal(registerModal);
+            });
+        });
+
+        switchToRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideModal(loginModal);
+            showModal(registerModal);
+        });
+
+        switchToLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideModal(registerModal);
+            showModal(loginModal);
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) hideModal(loginModal);
+            if (e.target === registerModal) hideModal(registerModal);
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Form submission with AJAX
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('login.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            showToast(result.message, result.color);
+            if (result.success) {
+                setTimeout(() => window.location.href = 'dashboard.php', 1000);
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('register.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            showToast(result.message, result.color);
+            if (result.success) {
+                setTimeout(() => window.location.href = 'dashboard.php', 1000);
+            }
+        });
+
+        // Toast notification
+        function showToast(message, color) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.backgroundColor = color;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        // Animate elements on scroll
+        function animateOnScroll() {
+            const elements = document.querySelectorAll('.animate__animated');
+            elements.forEach(element => {
+                const elementPosition = element.getBoundingClientRect().top;
+                const screenPosition = window.innerHeight / 1.3;
+                if (elementPosition < screenPosition) {
+                    element.classList.add('animate__animated');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', animateOnScroll);
+        animateOnScroll();
+    </script>
+</body>
+</html>

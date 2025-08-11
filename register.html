@@ -1,0 +1,43 @@
+<?php
+session_start();
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "waileent";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+    $checkEmailStmt = $conn->prepare("SELECT email FROM users WHERE email = ?");
+    $checkEmailStmt->bind_param("s", $email);
+    $checkEmailStmt->execute();
+    $checkEmailStmt->store_result();
+
+    if ($checkEmailStmt->num_rows > 0) {
+        echo json_encode(['success' => false, 'message' => 'Email already exists', 'color' => '#dc3545']);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO users (username, email, password, hwid) VALUES (?, ?, ?, ?)");
+        $hwid = bin2hex(random_bytes(16)); // Generate random HWID
+        $stmt->bind_param("ssss", $username, $email, $password, $hwid);
+        if ($stmt->execute()) {
+            $_SESSION['user_id'] = $conn->insert_id;
+            $_SESSION['username'] = $username;
+            $_SESSION['email'] = $email;
+            $_SESSION['is_admin'] = ($email === 'admin@waileent.com' && password_verify('q1iod01jdax', $password)) ? 1 : 0;
+            echo json_encode(['success' => true, 'message' => 'Account created successfully', 'color' => '#28a745']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $stmt->error, 'color' => '#dc3545']);
+        }
+        $stmt->close();
+    }
+    $checkEmailStmt->close();
+}
+$conn->close();
+?>

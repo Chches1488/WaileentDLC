@@ -1,0 +1,263 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.html");
+    exit;
+}
+
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "waileent";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$stmt = $conn->prepare("SELECT username, email, hwid, key_status FROM users WHERE id = ?");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+$conn->close();
+?>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waileent - Личный кабинет</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --dark-gray: #1a1a1a;
+            --medium-gray: #2d2d2d;
+            --light-gray: #3d3d3d;
+            --accent-blue: #3498db;
+            --text-white: #f5f5f5;
+            --text-gray: #b3b3b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-gray);
+            color: var(--text-white);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(52, 152, 219, 0.1) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(52, 152, 219, 0.1) 0%, transparent 25%);
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-white);
+            text-decoration: none;
+        }
+
+        .logo-highlight {
+            color: var(--accent-blue);
+        }
+
+        .auth-btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background-color: #dc3545;
+            color: var(--text-white);
+        }
+
+        .auth-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        main {
+            padding: 8rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2.5rem;
+        }
+
+        .dashboard-card {
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: var(--medium-gray);
+            color: var(--text-white);
+            font-size: 1rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--accent-blue);
+            color: var(--dark-gray);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo">Waileent<span class="logo-highlight">.</span></a>
+            <a href="logout.php" class="auth-btn">Выйти</a>
+        </div>
+    </header>
+
+    <main>
+        <h2 class="section-title animate__animated animate__fadeIn">Личный кабинет</h2>
+        <div class="dashboard-card animate__animated animate__fadeInUp">
+            <p><strong>UID:</strong> <?php echo $_SESSION['user_id']; ?></p>
+            <p><strong>Логин:</strong> <?php echo htmlspecialchars($user['username']); ?></p>
+            <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
+            <p><strong>HWID:</strong> <?php echo htmlspecialchars($user['hwid']); ?></p>
+            <p><strong>Статус ключа:</strong> <?php echo htmlspecialchars($user['key_status'] ?? 'Не активирован'); ?></p>
+            <form method="post" action="activate_key.php" class="mt-4">
+                <div class="form-group">
+                    <label for="key"><i class="fas fa-key"></i> Ключ активации</label>
+                    <input type="text" id="key" name="key" class="form-control" required>
+                </div>
+                <button type="submit" class="submit-btn">Активировать</button>
+            </form>
+        </div>
+
+        <?php if ($_SESSION['is_admin']): ?>
+        <h2 class="section-title animate__animated animate__fadeIn">Админ-панель</h2>
+        <div class="dashboard-card animate__animated animate__fadeInUp">
+            <h3 class="feature-title">Управление ключами</h3>
+            <form method="post" action="generate_key.php">
+                <div class="form-group">
+                    <label for="key_type">Тип ключа</label>
+                    <select id="key_type" name="key_type" class="form-control">
+                        <option value="1month">1 Месяц</option>
+                        <option value="3months">3 Месяца</option>
+                        <option value="1year">1 Год</option>
+                        <option value="forever">Навсегда</option>
+                        <option value="hwid_reset">Сброс HWID</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Сгенерировать ключ</button>
+            </form>
+            <h3 class="feature-title mt-4">Управление промокодами</h3>
+            <form method="post" action="generate_promocode.php">
+                <div class="form-group">
+                    <label for="promocode">Промокод</label>
+                    <input type="text" id="promocode" name="promocode" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="discount">Скидка (%)</label>
+                    <input type="number" id="discount" name="discount" class="form-control" required>
+                </div>
+                <button type="submit" class="submit-btn">Сгенерировать промокод</button>
+            </form>
+        </div>
+        <?php endif; ?>
+    </main>
+
+    <script>
+        // Form submission for key activation
+        document.querySelector('form[action="activate_key.php"]').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('activate_key.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            showToast(result.message, result.color);
+        });
+
+        // Toast notification
+        function showToast(message, color) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.backgroundColor = color;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

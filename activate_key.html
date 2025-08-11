@@ -1,0 +1,42 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.html");
+    exit;
+}
+
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "waileent";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $key = $_POST['key'];
+    $user_id = $_SESSION['user_id'];
+
+    $stmt = $conn->prepare("SELECT key_type FROM keys WHERE key_code = ? AND used = 0");
+    $stmt->bind_param("s", $key);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $key_data = $result->fetch_assoc();
+        $stmt = $conn->prepare("UPDATE users SET key_status = ? WHERE id = ?");
+        $stmt->bind_param("si", $key_data['key_type'], $user_id);
+        $stmt->execute();
+        $stmt = $conn->prepare("UPDATE keys SET used = 1 WHERE key_code = ?");
+        $stmt->bind_param("s", $key);
+        $stmt->execute();
+        echo json_encode(['success' => true, 'message' => 'Key activated successfully', 'color' => '#28a745']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Invalid or used key', 'color' => '#dc3545']);
+    }
+    $stmt->close();
+}
+$conn->close();
+?>
